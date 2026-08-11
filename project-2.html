@@ -4,14 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>车载HMI实时3D可视化系统 | Unity 3D开发</title>
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
 <style>
 /* ============================================================
    CSS 变量：统一颜色 / 间距 / 圆角
@@ -358,9 +350,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 /* ============================================================
-   4. 3D场景展示区 — Three.js 实时 3D 座舱
+   4. 3D场景展示区 — Unity WebGL 嵌入
    ============================================================ */
-.three-wrapper {
+.unity-wrapper {
   max-width: 1200px;
   margin: 0 auto;
   border-radius: var(--radius-2xl);
@@ -370,85 +362,23 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   position: relative;
 }
 
-.three-container {
+.unity-container {
   position: relative;
   width: 100%;
-  padding-bottom: 56.25%; /* 16:9 */
-  cursor: none; /* 自定义光标 */
+  padding-bottom: 56.25%; /* 16:9 响应式宽高比 */
 }
-
-.three-canvas {
+.unity-canvas,
+.unity-fallback,
+.unity-loading {
   position: absolute;
   top: 0; left: 0;
   width: 100%;
   height: 100%;
-  display: block;
-  outline: none;
 }
 
-/* 加载画面 */
-.three-loading {
-  position: absolute;
-  inset: 0;
-  background: #000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  z-index: 20;
-  transition: opacity 0.5s;
-}
-.three-loading.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* WebGL 不可用时的降级预览 */
-.three-fallback {
-  position: absolute;
-  inset: 0;
-  z-index: 15;
-  display: none;
-}
-.three-fallback img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.7;
-}
-.three-fallback-mask {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-.three-fallback-mask span {
-  padding: 10px 24px;
-  border-radius: 100px;
-  background: rgba(13,13,13,0.85);
-  border: 1px solid rgba(255,255,255,0.15);
-  font-size: 13px;
-  color: var(--text-tertiary);
-  letter-spacing: 0.5px;
-}
-
-.loading-ring {
-  width: 48px; height: 48px;
-  border: 2px solid rgba(0,240,255,0.2);
-  border-top-color: var(--accent-cyan);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-text {
-  font-size: 14px;
-  color: var(--text-tertiary);
-  letter-spacing: 1px;
+#unity-canvas {
+  display: none; /* 加载完成后显示 */
+  cursor: none;  /* 使用自定义十字光标 */
 }
 
 /* 自定义十字瞄准光标 */
@@ -472,6 +402,77 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: var(--accent-cyan);
   border-radius: 50%;
   transform: translate(-50%, -50%);
+}
+
+/* 加载画面 */
+.unity-loading {
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  z-index: 20;
+  transition: opacity 0.5s;
+}
+.unity-loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.loading-ring {
+  width: 48px; height: 48px;
+  border: 2px solid rgba(0,240,255,0.2);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+}
+.loading-bar {
+  width: 240px;
+  height: 2px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.loading-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent-cyan);
+  transition: width 0.3s ease;
+}
+
+/* Unity 未构建时的占位预览 */
+.unity-fallback {
+  display: none; /* JS 检测加载失败时显示 */
+  z-index: 10;
+}
+.unity-fallback img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+}
+.unity-fallback-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.unity-fallback-mask span {
+  padding: 10px 24px;
+  border-radius: 100px;
+  background: rgba(13,13,13,0.8);
+  border: 1px solid rgba(255,255,255,0.15);
+  font-size: 13px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.5px;
 }
 
 /* 场景说明浮层 */
@@ -672,7 +673,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transition: height 0.8s var(--ease-standard);
 }
 
-/* 状态反馈区 */
+/* 状态反馈条 */
 .status-bar {
   background: rgba(0,240,255,0.05);
   border-radius: var(--radius-sm);
@@ -829,11 +830,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   line-height: 1.6;
   color: rgba(255,255,255,0.8);
 }
-.tok-kw  { color: #FF7B72; }
-.tok-str { color: #A5D6FF; }
-.tok-cmt { color: #8B949E; }
-.tok-fn  { color: #D2A8FF; }
-.tok-num { color: #79C0FF; }
+/* 简单语法高亮 */
+.tok-kw  { color: #FF7B72; }  /* 关键字 */
+.tok-str { color: #A5D6FF; }  /* 字符串 */
+.tok-cmt { color: #8B949E; }  /* 注释 */
+.tok-fn  { color: #D2A8FF; }  /* 函数名 */
+.tok-num { color: #79C0FF; }  /* 数字 */
 
 /* ============================================================
    7. 页面底部
@@ -896,8 +898,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 </head>
 <body>
 
-<!-- 顶部导航 -->
+<!-- ============================================================
+     1. 顶部导航栏
+     ============================================================ -->
 <nav class="nav" id="nav">
+  <!-- 【需替换】href 改为项目一首页实际路径 -->
   <a href="index.html" class="nav-back">
     <span class="arrow">←</span>
     <span>返回首页</span>
@@ -909,7 +914,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   </div>
 </nav>
 
-<!-- Hero -->
+<!-- ============================================================
+     2. Hero 项目标题区
+     ============================================================ -->
 <header class="hero">
   <span class="hero-tag">Unity 3D开发</span>
   <h1 class="hero-title">车载HMI实时3D可视化系统</h1>
@@ -926,11 +933,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   </div>
 </header>
 
-<!-- 项目概述 -->
+<!-- ============================================================
+     3. 项目概述区
+     ============================================================ -->
 <section class="section">
   <div class="container container-narrow reveal">
     <div class="overview-grid">
       <div class="overview-label">项目概述</div>
+      <!-- 【占位】项目概述，约80字，替换为实际项目描述 -->
       <p class="overview-text">
         这是一个基于 Unity URP（Universal Render Pipeline）打造的智能座舱实时3D可视化Demo。
         项目实现了座舱环境的高保真实时渲染、多驾驶模式动态切换、氛围灯联动与空调车窗等座舱交互控制，
@@ -940,14 +950,25 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     </div>
 
     <div class="stats-row">
-      <div class="stat-card reveal"><div class="stat-number">60 FPS</div><div class="stat-label">中端硬件稳定帧率</div></div>
-      <div class="stat-card reveal" style="transition-delay: 0.15s"><div class="stat-number">3种驾驶模式</div><div class="stat-label">舒适 / 运动 / 节能联动</div></div>
-      <div class="stat-card reveal" style="transition-delay: 0.3s"><div class="stat-number">URP渲染管线</div><div class="stat-label">体积光 + 实时反射探针</div></div>
+      <div class="stat-card reveal">
+        <div class="stat-number">60 FPS</div>
+        <div class="stat-label">中端硬件稳定帧率</div>
+      </div>
+      <div class="stat-card reveal" style="transition-delay: 0.15s">
+        <div class="stat-number">3种驾驶模式</div>
+        <div class="stat-label">舒适 / 运动 / 节能联动</div>
+      </div>
+      <div class="stat-card reveal" style="transition-delay: 0.3s">
+        <div class="stat-number">URP渲染管线</div>
+        <div class="stat-label">体积光 + 实时反射探针</div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- 3D场景展示：Three.js 实时座舱 -->
+<!-- ============================================================
+     4. 3D场景展示区（Unity WebGL 核心嵌入区）
+     ============================================================ -->
 <section class="section section-alt" id="scene">
   <div class="container reveal">
     <div class="section-header">
@@ -955,31 +976,49 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         <span class="section-title-bar"></span>
         <h2 class="section-title">3D场景展示</h2>
       </div>
-      <p class="section-subtitle">Three.js 实时渲染 · 智能座舱环境</p>
+      <p class="section-subtitle">Unity WebGL实时渲染 · 智能座舱环境</p>
     </div>
 
-    <div class="three-wrapper">
-      <div class="three-container" id="three-container">
-        <!-- Three.js 会在这里创建 canvas -->
-        <div class="three-loading" id="three-loading">
-          <div class="loading-ring"></div>
-          <div class="loading-text">Loading 3D Scene...</div>
-        </div>
-        <!-- WebGL 不可用时降级显示静态预览 -->
-        <div class="three-fallback" id="three-fallback">
+    <div class="unity-wrapper">
+      <div class="unity-container" id="unity-container">
+
+        <!-- Unity WebGL Canvas（加载完成后显示） -->
+        <canvas id="unity-canvas" class="unity-canvas"></canvas>
+
+        <!-- 【占位】Unity 未构建时的静态预览（JS加载失败时显示）
+             建议图片尺寸 1920x1080 -->
+        <div class="unity-fallback" id="unity-fallback">
           <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Futuristic%20car%20smart%20cockpit%20interior%20with%20large%20panoramic%20HMI%20display%20screens%2C%20glowing%20cyan%20ambient%20lighting%20strips%2C%20dark%20luxury%20leather%20dashboard%2C%20sci-fi%20minimalist%20design%2C%20photorealistic%203D%20render%2C%20cinematic%20lighting%2C%20high%20detail&image_size=landscape_16_9" alt="智能座舱3D场景预览">
-          <div class="three-fallback-mask">
-            <span>当前环境不支持 WebGL，请使用现代浏览器查看实时 3D 效果</span>
+          <div class="unity-fallback-mask">
+            <span>请构建 Unity WebGL 并替换 Build 路径</span>
           </div>
         </div>
+
+        <!-- 自定义加载画面（替代Unity默认logo） -->
+        <div class="unity-loading" id="unity-loading">
+          <div class="loading-ring"></div>
+          <div class="loading-text">Loading 3D Scene...</div>
+          <div class="loading-bar">
+            <div class="loading-bar-fill" id="loading-bar-fill"></div>
+          </div>
+        </div>
+
+        <!-- 自定义十字瞄准光标 -->
         <div class="crosshair-cursor" id="crosshair"></div>
-        <div class="scene-hint" id="scene-hint">鼠标左键旋转视角 · 滚轮缩放 · 右键平移</div>
+
+        <!-- 场景说明浮层 -->
+        <div class="scene-hint" id="scene-hint">
+          鼠标左键旋转视角 · 滚轮缩放 · 右键平移
+        </div>
+
       </div>
     </div>
   </div>
 </section>
 
-<!-- 交互演示 -->
+<!-- ============================================================
+     5. 交互演示区
+     ============================================================ -->
 <section class="section" id="interaction">
   <div class="container reveal">
     <div class="section-header">
@@ -991,14 +1030,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     </div>
 
     <div class="interaction-grid">
+      <!-- 左侧：焦点特写图（【占位】可替换为场景截图/视频，建议 1600x900） -->
       <div class="interaction-preview">
         <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Close-up%20detail%20of%20luxury%20electric%20car%20center%20console%20with%20glowing%20touchscreen%20HMI%20interface%20showing%20driving%20mode%20selection%2C%20cyan%20neon%20accents%20on%20dark%20surfaces%2C%20premium%20automotive%20interior%20photography%2C%20shallow%20depth%20of%20field%2C%20cinematic&image_size=landscape_4_3" alt="座舱交互特写">
         <div class="preview-caption">驾驶模式联动 · 氛围灯 / 仪表主题实时切换</div>
       </div>
 
+      <!-- 右侧：控制面板 -->
       <div class="control-panel">
         <div class="panel-title">座舱控制</div>
 
+        <!-- 驾驶模式切换 -->
         <div>
           <span class="control-label">驾驶模式</span>
           <div class="mode-buttons">
@@ -1008,6 +1050,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           </div>
         </div>
 
+        <!-- 氛围灯控制 -->
         <div>
           <span class="control-label">氛围灯</span>
           <div class="ambient-dots">
@@ -1019,11 +1062,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           </div>
         </div>
 
+        <!-- 空调开关 -->
         <div class="ac-row">
           <span class="control-label" style="margin-bottom:0">空调</span>
-          <button class="ac-toggle on" id="ac-toggle" aria-label="空调开关"><span class="knob"></span></button>
+          <button class="ac-toggle on" id="ac-toggle" aria-label="空调开关">
+            <span class="knob"></span>
+          </button>
         </div>
 
+        <!-- 车窗控制 -->
         <div>
           <span class="control-label">车窗</span>
           <div class="window-buttons">
@@ -1034,13 +1081,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           </div>
         </div>
 
+        <!-- 状态反馈条 -->
         <div class="status-bar" id="status-bar">当前模式：舒适模式 · 氛围灯：科技青 · 空调：开启</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 技术实现 -->
+<!-- ============================================================
+     6. 技术实现区
+     ============================================================ -->
 <section class="section section-alt" id="tech">
   <div class="container reveal">
     <div class="section-header" style="text-align:left;">
@@ -1052,44 +1102,75 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     </div>
 
     <div class="accordion-list">
+      <!-- 面板1：渲染管线架构 -->
       <div class="accordion-item open">
-        <button class="accordion-header"><span>渲染管线架构</span><span class="accordion-arrow">▾</span></button>
+        <button class="accordion-header">
+          <span>渲染管线架构</span>
+          <span class="accordion-arrow">▾</span>
+        </button>
         <div class="accordion-body">
           <div class="accordion-body-inner">
             <div class="accordion-content">
+              <!-- 【占位】渲染管线说明文字 -->
               项目基于 URP（Universal Render Pipeline）构建，采用后处理体积光（Volumetric Lighting）
               营造座舱氛围灯的空气感，配合 Baked GI 烘焙全局光照与 Realtime Reflection Probes
               实时反射探针，在保证性能的前提下呈现车漆与屏幕玻璃材质的高光细节。
               UI层使用 Render Texture 将HMI界面渲染至曲面屏模型，实现屏显与3D场景的无缝融合。
+              <!-- 【占位】架构图，建议尺寸 1200x600 -->
               <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Technical%20diagram%20of%20Unity%20URP%20render%20pipeline%20architecture%20for%20automotive%20HMI%2C%20dark%20blueprint%20style%2C%20glowing%20cyan%20flow%20lines%20connecting%20render%20pass%20nodes%2C%20minimalist%20engineering%20schematic%2C%20dark%20background&image_size=landscape_16_9" alt="渲染管线架构图">
             </div>
           </div>
         </div>
       </div>
 
+      <!-- 面板2：性能优化策略 -->
       <div class="accordion-item">
-        <button class="accordion-header"><span>性能优化策略</span><span class="accordion-arrow">▾</span></button>
+        <button class="accordion-header">
+          <span>性能优化策略</span>
+          <span class="accordion-arrow">▾</span>
+        </button>
         <div class="accordion-body">
           <div class="accordion-body-inner">
             <div class="accordion-content">
               <div class="perf-chart-wrap">
+                <!-- CSS柱状图：Draw Call 数据（【占位】320 / 180 / 95，替换为实测数据） -->
                 <div class="perf-chart" id="perf-chart">
-                  <div class="perf-bar-col"><span class="perf-value" data-target="320">0</span><div class="perf-bar dim" style="height: 100%;"></div><span class="perf-bar-label">优化前</span></div>
-                  <div class="perf-bar-col"><span class="perf-value" data-target="180">0</span><div class="perf-bar" style="height: 56%;"></div><span class="perf-bar-label">优化中</span></div>
-                  <div class="perf-bar-col"><span class="perf-value" data-target="95">0</span><div class="perf-bar" style="height: 30%;"></div><span class="perf-bar-label">优化后</span></div>
+                  <div class="perf-bar-col">
+                    <span class="perf-value" data-target="320">0</span>
+                    <div class="perf-bar dim" style="height: 100%;"></div>
+                    <span class="perf-bar-label">优化前</span>
+                  </div>
+                  <div class="perf-bar-col">
+                    <span class="perf-value" data-target="180">0</span>
+                    <div class="perf-bar" style="height: 56%;"></div>
+                    <span class="perf-bar-label">优化中</span>
+                  </div>
+                  <div class="perf-bar-col">
+                    <span class="perf-value" data-target="95">0</span>
+                    <div class="perf-bar" style="height: 30%;"></div>
+                    <span class="perf-bar-label">优化后</span>
+                  </div>
                 </div>
-                <p class="perf-note">通过LOD分级、Occlusion Culling遮挡剔除与GPU Instancing合批，将Draw Call从320降至95，帧率稳定在60FPS。</p>
+                <p class="perf-note">
+                  通过LOD分级、Occlusion Culling遮挡剔除与GPU Instancing合批，
+                  将Draw Call从320降至95，帧率稳定在60FPS。
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- 面板3：核心代码片段 -->
       <div class="accordion-item">
-        <button class="accordion-header"><span>核心代码片段</span><span class="accordion-arrow">▾</span></button>
+        <button class="accordion-header">
+          <span>核心代码片段</span>
+          <span class="accordion-arrow">▾</span>
+        </button>
         <div class="accordion-body">
           <div class="accordion-body-inner">
             <div class="accordion-content">
+              <!-- 【占位】C# 驾驶模式切换脚本，替换为实际代码 -->
               <div class="code-block reveal">
                 <span class="code-lang-tag">C#</span>
 <pre><code><span class="tok-cmt">// DriveModeController.cs — 驾驶模式切换控制器</span>
@@ -1098,16 +1179,23 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 <span class="tok-kw">public class</span> <span class="tok-fn">DriveModeController</span> : MonoBehaviour
 {
-    <span class="tok-kw">public</span> Material cockpitEmissionMat;
-    <span class="tok-kw">public</span> Light[] ambientLights;
+    <span class="tok-kw">public</span> Material cockpitEmissionMat;   <span class="tok-cmt">// 座舱氛围灯材质</span>
+    <span class="tok-kw">public</span> Light[] ambientLights;         <span class="tok-cmt">// 氛围灯灯组</span>
 
+    <span class="tok-cmt">// 供网页 JS 调用：unityInstance.SendMessage("HMIController", "SetDriveMode", "Sport")</span>
     <span class="tok-kw">public void</span> <span class="tok-fn">SetDriveMode</span>(<span class="tok-kw">string</span> mode)
     {
         <span class="tok-kw">switch</span> (mode)
         {
-            <span class="tok-kw">case</span> <span class="tok-str">"Comfort"</span>: <span class="tok-fn">ApplyMode</span>(Color.cyan, <span class="tok-num">0.6f</span>); <span class="tok-kw">break</span>;
-            <span class="tok-kw">case</span> <span class="tok-str">"Sport"</span>: <span class="tok-fn">ApplyMode</span>(<span class="tok-kw">new</span> Color(<span class="tok-num">1f</span>, <span class="tok-num">0.42f</span>, <span class="tok-num">0f</span>), <span class="tok-num">1.2f</span>); <span class="tok-kw">break</span>;
-            <span class="tok-kw">case</span> <span class="tok-str">"Eco"</span>: <span class="tok-fn">ApplyMode</span>(Color.green, <span class="tok-num">0.35f</span>); <span class="tok-kw">break</span>;
+            <span class="tok-kw">case</span> <span class="tok-str">"Comfort"</span>:
+                <span class="tok-fn">ApplyMode</span>(Color.cyan, <span class="tok-num">0.6f</span>);
+                <span class="tok-kw">break</span>;
+            <span class="tok-kw">case</span> <span class="tok-str">"Sport"</span>:
+                <span class="tok-fn">ApplyMode</span>(<span class="tok-kw">new</span> Color(<span class="tok-num">1f</span>, <span class="tok-num">0.42f</span>, <span class="tok-num">0f</span>), <span class="tok-num">1.2f</span>);
+                <span class="tok-kw">break</span>;
+            <span class="tok-kw">case</span> <span class="tok-str">"Eco"</span>:
+                <span class="tok-fn">ApplyMode</span>(Color.green, <span class="tok-num">0.35f</span>);
+                <span class="tok-kw">break</span>;
         }
     }
 
@@ -1126,13 +1214,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   </div>
 </section>
 
-<!-- 底部 -->
+<!-- ============================================================
+     7. 页面底部
+     ============================================================ -->
 <footer class="section">
   <div class="container reveal">
     <div class="footer-nav">
+      <!-- 【需替换】改为项目一实际路径 -->
       <a href="project1.html" class="footer-nav-btn">← 项目一：智能座舱HMI交互设计</a>
+      <!-- 【需替换】改为项目三实际路径，若无项目三可改为 index.html（返回首页） -->
       <a href="index.html" class="footer-nav-btn">项目三：航空座舱交互迁移 →</a>
     </div>
+    <!-- 【占位】版权与联系方式 -->
     <div class="footer-copyright">
       <span>© 2024 YourName. All rights reserved.</span>
       <span>contact@example.com</span>
@@ -1140,424 +1233,167 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   </div>
 </footer>
 
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-
+<script>
 /* ============================================================
-   全局状态：Three.js 场景对象引用
+   全局状态
    ============================================================ */
-window.sceneApi = {
-  setDriveMode: null,
-  setAmbientColor: null,
-  setAirCondition: null,
-  setWindow: null
-};
+var unityInstance = null; // Unity 实例引用（加载成功后赋值）
 
 /* ============================================================
-   1. 导航栏
+   1. 导航栏：滚动样式 + 锚点高亮
    ============================================================ */
 (function initNav() {
   var nav = document.getElementById('nav');
   var links = document.querySelectorAll('.nav-link');
-  var sections = ['scene', 'interaction', 'tech'].map(function (id) { return document.getElementById(id); });
+  var sections = ['scene', 'interaction', 'tech'].map(function (id) {
+    return document.getElementById(id);
+  });
+
   window.addEventListener('scroll', function () {
+    // 滚动>100px：毛玻璃背景
     nav.classList.toggle('scrolled', window.scrollY > 100);
+
+    // 当前区域高亮
     var current = '';
     sections.forEach(function (sec) {
       if (sec && window.scrollY >= sec.offsetTop - 200) current = sec.id;
     });
-    links.forEach(function (l) { l.classList.toggle('active', l.dataset.section === current); });
+    links.forEach(function (l) {
+      l.classList.toggle('active', l.dataset.section === current);
+    });
   }, { passive: true });
 })();
 
 /* ============================================================
-   2. 滚动触发动画
+   2. 滚动触发动画（Intersection Observer）
    ============================================================ */
 (function initReveal() {
   var observer = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
-      if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
     });
   }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach(function (el) { observer.observe(el); });
+
+  document.querySelectorAll('.reveal').forEach(function (el) {
+    observer.observe(el);
+  });
 })();
 
 /* ============================================================
-   3. Three.js 智能座舱场景
+   3. Unity WebGL 嵌入（核心）
+   ============================================================
+   【需替换】构建 Unity WebGL 后：
+   1. 将 Unity 导出的 Build 文件夹放到本页面同级目录
+   2. 将下方 YOUR_BUILD 替换为实际的构建文件名
+      （例如 Build/CarHMI.loader.js，则 YOUR_BUILD = "CarHMI"）
+   3. 若构建时未开启压缩，去掉文件名中的 .gz 后缀
    ============================================================ */
-function webglAvailable() {
-  try {
-    var c = document.createElement('canvas');
-    return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
-  } catch (e) { return false; }
-}
-
-(function initThree() {
-  var container = document.getElementById('three-container');
-  var loadingEl = document.getElementById('three-loading');
-  var fallbackEl = document.getElementById('three-fallback');
+(function initUnity() {
+  var canvas = document.getElementById('unity-canvas');
+  var loadingEl = document.getElementById('unity-loading');
+  var loadingFill = document.getElementById('loading-bar-fill');
+  var fallbackEl = document.getElementById('unity-fallback');
   var sceneHint = document.getElementById('scene-hint');
+
+  // ---------- 占位配置，后续替换为实际 build 路径 ----------
+  var buildUrl = "Build"; // Unity构建输出文件夹路径
+  var loaderUrl = buildUrl + "/YOUR_BUILD.loader.js";
+  var config = {
+    dataUrl: buildUrl + "/YOUR_BUILD.data.gz",
+    frameworkUrl: buildUrl + "/YOUR_BUILD.framework.js.gz",
+    codeUrl: buildUrl + "/YOUR_BUILD.wasm.gz",
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: "YourName",
+    productName: "CarHMI_3D_Demo",
+    productVersion: "1.0",
+  };
+  // ----------------------------------------------------------
+
+  // 显示静态占位预览（构建文件缺失 / 加载失败时调用）
+  function showFallback() {
+    loadingEl.classList.add('hidden');
+    fallbackEl.style.display = 'block';
+    // 占位状态下也展示操作提示浮层
+    setTimeout(function () { sceneHint.classList.add('visible'); }, 1000);
+  }
+
+  // 动态加载 Unity loader 脚本
+  var script = document.createElement('script');
+  script.src = loaderUrl;
+
+  script.onload = function () {
+    // createUnityInstance(canvas, config, onProgress)
+    createUnityInstance(canvas, config, function (progress) {
+      // 加载进度回调：更新进度条宽度（progress: 0 ~ 1）
+      loadingFill.style.width = Math.round(progress * 100) + '%';
+    }).then(function (instance) {
+      // 加载完成回调
+      unityInstance = instance;
+
+      // 加载画面淡出（opacity 1→0, 0.5s，CSS transition）
+      loadingEl.classList.add('hidden');
+
+      // 显示 WebGL 画布
+      canvas.style.display = 'block';
+
+      // 延迟 1s 显示场景说明浮层（从左侧滑入）
+      setTimeout(function () {
+        sceneHint.classList.add('visible');
+      }, 1000);
+
+      console.log('[Unity] WebGL 实例加载完成');
+    }).catch(function (message) {
+      console.error('[Unity] 加载失败：', message);
+      showFallback();
+    });
+  };
+
+  // loader.js 不存在（尚未构建）时，展示占位预览
+  script.onerror = function () {
+    console.warn('[Unity] 未找到构建文件 ' + loaderUrl + '，显示占位预览。请构建 Unity WebGL 并替换 Build 路径。');
+    showFallback();
+  };
+
+  document.body.appendChild(script);
+
+  /* ----------------------------------------------------------
+     自定义十字瞄准光标（悬停在WebGL画布上时）
+     ---------------------------------------------------------- */
   var crosshair = document.getElementById('crosshair');
+  var container = document.getElementById('unity-container');
 
-  // WebGL 不支持时显示降级预览
-  if (!webglAvailable()) {
-    loadingEl.classList.add('hidden');
-    fallbackEl.style.display = 'block';
-    setTimeout(function () { sceneHint.classList.add('visible'); }, 1000);
-    return;
-  }
-
-  // 创建 canvas 并插入容器
-  var canvas = document.createElement('canvas');
-  canvas.className = 'three-canvas';
-  container.insertBefore(canvas, loadingEl);
-
-  // 场景 / 相机 / 渲染器
-  var scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x050505);
-  scene.fog = new THREE.FogExp2(0x050505, 0.02);
-
-  var camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-  camera.position.set(5, 2.5, 5);
-
-  var renderer;
-  try {
-    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
-  } catch (err) {
-    renderer = null;
-  }
-  if (!renderer || !renderer.getContext()) {
-    loadingEl.classList.add('hidden');
-    fallbackEl.style.display = 'block';
-    setTimeout(function () { sceneHint.classList.add('visible'); }, 1000);
-    return;
-  }
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
-
-  // 控制器
-  var controls = new OrbitControls(camera, canvas);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-  controls.target.set(0, 0.2, 0);
-  controls.minDistance = 2.5;
-  controls.maxDistance = 8;
-  controls.maxPolarAngle = Math.PI / 1.9;
-  controls.autoRotate = true;
-  controls.autoRotateSpeed = 0.6;
-
-  // 启用 RectAreaLight
-  RectAreaLightUniformsLib.init();
-
-  // 材质库
-  var dashMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.3, metalness: 0.2 });
-  var leatherMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9, metalness: 0.05 });
-  var metalMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.2, metalness: 0.9 });
-  var screenMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.1, metalness: 0.5, emissive: 0x001111, emissiveIntensity: 0.4 });
-  var glassMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0, roughness: 0, transmission: 0.9, thickness: 0.5, transparent: true, opacity: 0.25 });
-
-  // 氛围灯材质（可变色 + 发光）
-  var ambientLightMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 2.5, toneMapped: false });
-  var ambientStrips = []; // 需要同步变色的发光条
-
-  // 座舱组
-  var cockpit = new THREE.Group();
-  scene.add(cockpit);
-
-  // --- 仪表盘主体 ---
-  var dashboard = new THREE.Mesh(new RoundedBoxGeometry(3.6, 0.85, 1.2, 8, 0.08), dashMat);
-  dashboard.position.set(0, 0.45, -1.0);
-  dashboard.rotation.x = 0.08;
-  dashboard.castShadow = true;
-  cockpit.add(dashboard);
-
-  // 仪表/中控双联屏
-  var screenL = new THREE.Mesh(new RoundedBoxGeometry(1.4, 0.5, 0.06, 4, 0.03), screenMat.clone());
-  screenL.position.set(-0.85, 0.62, -0.35);
-  screenL.rotation.x = -0.12;
-  cockpit.add(screenL);
-
-  var screenR = new THREE.Mesh(new RoundedBoxGeometry(1.4, 0.5, 0.06, 4, 0.03), screenMat.clone());
-  screenR.position.set(0.85, 0.62, -0.35);
-  screenR.rotation.x = -0.12;
-  cockpit.add(screenR);
-
-  // 屏幕内容纹理：模拟 HMI 界面
-  function createScreenTexture(type) {
-    var cvs = document.createElement('canvas');
-    cvs.width = 512; cvs.height = 256;
-    var ctx = cvs.getContext('2d');
-    ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, 512, 256);
-    ctx.strokeStyle = '#00F0FF'; ctx.lineWidth = 2;
-    ctx.strokeRect(12, 12, 488, 232);
-    ctx.fillStyle = '#00F0FF'; ctx.font = 'bold 36px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(type === 'l' ? '72' : 'D', 256, 100);
-    ctx.font = '18px Inter, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.fillText(type === 'l' ? 'km/h' : 'Comfort', 256, 140);
-    // 速度曲线 / 能量环
-    ctx.beginPath();
-    ctx.arc(256, 128, 80, 0.8 * Math.PI, 1.6 * Math.PI);
-    ctx.strokeStyle = 'rgba(0,240,255,0.4)';
-    ctx.lineWidth = 8;
-    ctx.stroke();
-    var tex = new THREE.CanvasTexture(cvs);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
-  }
-  screenL.material.map = createScreenTexture('l');
-  screenR.material.map = createScreenTexture('r');
-  screenL.material.emissiveMap = screenL.material.map;
-  screenR.material.emissiveMap = screenR.material.map;
-
-  // 氛围灯灯带（贯穿仪表台、门板）
-  var stripGeo = new THREE.BoxGeometry(3.4, 0.02, 0.02);
-  var strip1 = new THREE.Mesh(stripGeo, ambientLightMat);
-  strip1.position.set(0, 0.22, -0.52);
-  cockpit.add(strip1);
-  ambientStrips.push(strip1);
-
-  var strip2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.6, 0.02), ambientLightMat);
-  strip2.position.set(-1.7, 0.2, 0.2);
-  cockpit.add(strip2);
-  ambientStrips.push(strip2);
-
-  var strip3 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.6, 0.02), ambientLightMat);
-  strip3.position.set(1.7, 0.2, 0.2);
-  cockpit.add(strip3);
-  ambientStrips.push(strip3);
-
-  // 中控屏下方控制台
-  var centerConsole = new THREE.Mesh(new RoundedBoxGeometry(0.7, 0.35, 1.0, 4, 0.06), dashMat);
-  centerConsole.position.set(0, 0.25, 0.65);
-  cockpit.add(centerConsole);
-
-  // 换挡旋钮 / 杯架细节
-  var knob = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 32), metalMat);
-  knob.position.set(0, 0.45, 0.55);
-  cockpit.add(knob);
-
-  // 方向盘
-  var steeringGroup = new THREE.Group();
-  steeringGroup.position.set(0, 0.55, 0.35);
-  steeringGroup.rotation.x = -0.25;
-  cockpit.add(steeringGroup);
-
-  var wheelRim = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.05, 16, 64), leatherMat);
-  wheelRim.castShadow = true;
-  steeringGroup.add(wheelRim);
-
-  var wheelCenter = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.08, 32), metalMat);
-  wheelCenter.rotation.x = Math.PI / 2;
-  steeringGroup.add(wheelCenter);
-
-  // 座椅轮廓（低模）
-  var seatGeo = new RoundedBoxGeometry(0.9, 1.0, 0.35, 6, 0.1);
-  var seatL = new THREE.Mesh(seatGeo, leatherMat);
-  seatL.position.set(-0.75, 0.3, 1.3);
-  seatL.rotation.x = -0.15;
-  cockpit.add(seatL);
-
-  var seatR = new THREE.Mesh(seatGeo, leatherMat);
-  seatR.position.set(0.75, 0.3, 1.3);
-  seatR.rotation.x = -0.15;
-  cockpit.add(seatR);
-
-  // 地面反射板
-  var floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.1, metalness: 0.4 }));
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -0.4;
-  floor.receiveShadow = true;
-  scene.add(floor);
-
-  // --- 灯光系统 ---
-  var ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
-  scene.add(ambientLight);
-
-  // 主顶光
-  var topLight = new THREE.DirectionalLight(0xffffff, 0.6);
-  topLight.position.set(2, 5, 2);
-  topLight.castShadow = true;
-  topLight.shadow.mapSize.width = 1024;
-  topLight.shadow.mapSize.height = 1024;
-  scene.add(topLight);
-
-  // 仪表屏区域光
-  var screenLight = new THREE.RectAreaLight(0x00f0ff, 3, 2.8, 0.5);
-  screenLight.position.set(0, 0.7, -0.2);
-  screenLight.lookAt(0, 0.5, 1);
-  scene.add(screenLight);
-
-  // 氛围灯光源（跟随灯带颜色）
-  var ambientPointL = new THREE.PointLight(0x00f0ff, 1.2, 4);
-  ambientPointL.position.set(-1.6, 0.3, 0.2);
-  scene.add(ambientPointL);
-
-  var ambientPointR = new THREE.PointLight(0x00f0ff, 1.2, 4);
-  ambientPointR.position.set(1.6, 0.3, 0.2);
-  scene.add(ambientPointR);
-
-  // 空调出风口粒子效果
-  var particlesGeo = new THREE.BufferGeometry();
-  var particleCount = 60;
-  var pPos = new Float32Array(particleCount * 3);
-  for (var i = 0; i < particleCount; i++) {
-    pPos[i*3] = (Math.random() - 0.5) * 2.5;
-    pPos[i*3+1] = Math.random() * 1.2 + 0.2;
-    pPos[i*3+2] = (Math.random() - 0.5) * 2 + 0.5;
-  }
-  particlesGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-  var particlesMat = new THREE.PointsMaterial({ color: 0x00f0ff, size: 0.015, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
-  var particles = new THREE.Points(particlesGeo, particlesMat);
-  scene.add(particles);
-
-  // 窗户玻璃片（可视化车窗升降）
-  var windowL = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 0.7), glassMat);
-  windowL.position.set(-1.82, 0.45, 0.3);
-  windowL.rotation.y = Math.PI / 2;
-  scene.add(windowL);
-
-  var windowR = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 0.7), glassMat);
-  windowR.position.set(1.82, 0.45, 0.3);
-  windowR.rotation.y = -Math.PI / 2;
-  scene.add(windowR);
-
-  /* ============================================================
-     外部控制 API
-     ============================================================ */
-  window.sceneApi.setAmbientColor = function (hex) {
-    var col = new THREE.Color(hex);
-    ambientLightMat.color.copy(col);
-    ambientLightMat.emissive.copy(col);
-    ambientPointL.color.copy(col);
-    ambientPointR.color.copy(col);
-    screenLight.color.copy(col);
-    particlesMat.color.copy(col);
-  };
-
-  window.sceneApi.setDriveMode = function (mode) {
-    var col, intensity, camFov, autoSpeed;
-    switch (mode) {
-      case 'Sport':
-        col = new THREE.Color(0xFF6B00); intensity = 3.5; camFov = 55; autoSpeed = 1.6;
-        break;
-      case 'Eco':
-        col = new THREE.Color(0x10b981); intensity = 1.6; camFov = 45; autoSpeed = 0.3;
-        break;
-      default: // Comfort
-        col = new THREE.Color(0x00F0FF); intensity = 2.5; camFov = 50; autoSpeed = 0.6;
-    }
-    ambientLightMat.emissiveIntensity = intensity;
-    ambientPointL.intensity = intensity * 0.5;
-    ambientPointR.intensity = intensity * 0.5;
-    screenLight.intensity = intensity;
-    ambientLightMat.color.copy(col);
-    ambientLightMat.emissive.copy(col);
-    ambientPointL.color.copy(col);
-    ambientPointR.color.copy(col);
-    screenLight.color.copy(col);
-    // 驾驶模式切换时停止自动旋转，给操作反馈
-    controls.autoRotateSpeed = autoSpeed;
-    // 相机 FOV 动画
-    gsapCameraFov(camFov);
-  };
-
-  window.sceneApi.setAirCondition = function (isOn) {
-    particlesMat.opacity = isOn ? 0.35 : 0.0;
-  };
-
-  window.sceneApi.setWindow = function (data) {
-    var parts = data.split(':');
-    var side = parts[0];
-    var up = parts[1] === 'up';
-    var targetScale = up ? 1 : 0.15;
-    if (side === '左前' || side === '左后') windowL.scale.y = targetScale;
-    if (side === '右前' || side === '右后') windowR.scale.y = targetScale;
-  };
-
-  // 简单 FOV 过渡动画
-  function gsapCameraFov(targetFov) {
-    var startFov = camera.fov;
-    var start = performance.now();
-    function anim(now) {
-      var t = Math.min((now - start) / 500, 1);
-      camera.fov = startFov + (targetFov - startFov) * (1 - Math.pow(1 - t, 3));
-      camera.updateProjectionMatrix();
-      if (t < 1) requestAnimationFrame(anim);
-    }
-    requestAnimationFrame(anim);
-  }
-
-  /* ============================================================
-     自定义光标
-     ============================================================ */
-  container.addEventListener('mouseenter', function () { crosshair.style.display = 'block'; });
+  container.addEventListener('mouseenter', function () {
+    if (canvas.style.display === 'block') crosshair.style.display = 'block';
+  });
   container.addEventListener('mousemove', function (e) {
     var rect = container.getBoundingClientRect();
     crosshair.style.left = (e.clientX - rect.left) + 'px';
     crosshair.style.top = (e.clientY - rect.top) + 'px';
   });
-  container.addEventListener('mouseleave', function () { crosshair.style.display = 'none'; });
-
-  /* ============================================================
-     交互时暂停自动旋转
-     ============================================================ */
-  controls.addEventListener('start', function () { controls.autoRotate = false; });
-
-  /* ============================================================
-     渲染循环
-     ============================================================ */
-  var clock = new THREE.Clock();
-  function animate() {
-    requestAnimationFrame(animate);
-    var dt = clock.getDelta();
-    var t = clock.getElapsedTime();
-
-    controls.update();
-
-    // 粒子缓慢流动
-    var positions = particles.geometry.attributes.position.array;
-    for (var i = 0; i < particleCount; i++) {
-      positions[i*3+1] += dt * 0.08;
-      if (positions[i*3+1] > 1.6) positions[i*3+1] = 0.2;
-    }
-    particles.geometry.attributes.position.needsUpdate = true;
-
-    // 方向盘轻微浮动
-    steeringGroup.rotation.z = Math.sin(t * 0.5) * 0.03;
-
-    renderer.render(scene, camera);
-  }
-
-  // 窗口 resize
-  function onResize() {
-    var w = container.clientWidth;
-    var h = container.clientHeight;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-  }
-  window.addEventListener('resize', onResize);
-
-  // 隐藏 loading，显示提示
-  setTimeout(function () {
-    loadingEl.classList.add('hidden');
-    setTimeout(function () { sceneHint.classList.add('visible'); }, 600);
-  }, 1200);
-
-  animate();
+  container.addEventListener('mouseleave', function () {
+    crosshair.style.display = 'none';
+  });
 })();
 
 /* ============================================================
-   4. 控制面板逻辑（连接 Three.js API）
+   SendMessage 封装
+   【需替换】将 "HMIController" 替换为 Unity 场景中实际接收消息的
+   GameObject 名称，方法名与 C# 脚本中的 public 方法保持一致。
+   ============================================================ */
+function sendToUnity(method, value) {
+  if (unityInstance) {
+    unityInstance.SendMessage("HMIController", method, value);
+  } else {
+    // 占位：Unity未加载时输出日志，便于调试交互逻辑
+    console.log('[SendMessage 占位] GameObject: HMIController | 方法: ' + method + ' | 参数: ' + value);
+  }
+}
+
+/* ============================================================
+   4. 交互演示区：控制面板逻辑
    ============================================================ */
 (function initControlPanel() {
   var statusBar = document.getElementById('status-bar');
@@ -1565,54 +1401,60 @@ function webglAvailable() {
 
   function updateStatus() {
     statusBar.textContent = '当前模式：' + state.mode + ' · 氛围灯：' + state.ambient + ' · 空调：' + state.ac;
+    // 闪烁高亮反馈
     statusBar.classList.remove('flash');
-    void statusBar.offsetWidth;
+    void statusBar.offsetWidth; // 触发重绘以重启动画
     statusBar.classList.add('flash');
   }
 
+  /* ---------- 驾驶模式切换 ---------- */
+  // 【需替换】SendMessage 参数值（Comfort/Sport/Eco）需与 C# 脚本中 case 匹配
   var modeMap = { '舒适': 'Comfort', '运动': 'Sport', '节能': 'Eco' };
   document.querySelectorAll('.mode-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.mode-btn').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
       state.mode = btn.dataset.mode + '模式';
-      if (window.sceneApi.setDriveMode) window.sceneApi.setDriveMode(modeMap[btn.dataset.mode]);
+      sendToUnity('SetDriveMode', modeMap[btn.dataset.mode]); // 【需替换】方法名
       updateStatus();
     });
   });
 
+  /* ---------- 氛围灯控制 ---------- */
   document.querySelectorAll('.ambient-dot').forEach(function (dot) {
     dot.addEventListener('click', function () {
       document.querySelectorAll('.ambient-dot').forEach(function (d) { d.classList.remove('active'); });
       dot.classList.add('active');
       state.ambient = dot.dataset.name;
-      if (window.sceneApi.setAmbientColor) window.sceneApi.setAmbientColor(dot.dataset.color);
+      sendToUnity('SetAmbientColor', dot.dataset.color); // 【需替换】方法名（C#端解析 hex 颜色）
       updateStatus();
     });
   });
 
+  /* ---------- 空调开关 ---------- */
   var acToggle = document.getElementById('ac-toggle');
   acToggle.addEventListener('click', function () {
     var isOn = acToggle.classList.toggle('on');
     state.ac = isOn ? '开启' : '关闭';
-    if (window.sceneApi.setAirCondition) window.sceneApi.setAirCondition(isOn);
+    sendToUnity('SetAirCondition', isOn ? '1' : '0'); // 【需替换】方法名（SendMessage 参数仅支持 string/number）
     updateStatus();
   });
 
+  /* ---------- 车窗控制 ---------- */
   document.querySelectorAll('.window-btn').forEach(function (btn) {
     var fill = btn.querySelector('.window-bar-fill');
     var isUp = true;
     fill.style.height = '100%';
     btn.addEventListener('click', function () {
       isUp = !isUp;
-      fill.style.height = isUp ? '100%' : '12%';
-      if (window.sceneApi.setWindow) window.sceneApi.setWindow(btn.dataset.window + ':' + (isUp ? 'up' : 'down'));
+      fill.style.height = isUp ? '100%' : '12%'; // 升降进度动画
+      sendToUnity('SetWindow', btn.dataset.window + ':' + (isUp ? 'up' : 'down')); // 【需替换】方法名
     });
   });
 })();
 
 /* ============================================================
-   5. Accordion
+   5. 技术实现区：Accordion
    ============================================================ */
 (function initAccordion() {
   document.querySelectorAll('.accordion-header').forEach(function (header) {
@@ -1623,25 +1465,32 @@ function webglAvailable() {
 })();
 
 /* ============================================================
-   6. 性能柱状图
+   6. 性能柱状图：生长动画 + 数字滚动
    ============================================================ */
 (function initPerfChart() {
   var chart = document.getElementById('perf-chart');
   if (!chart) return;
+
   var observer = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
       if (!entry.isIntersecting) return;
       observer.unobserve(chart);
-      chart.querySelectorAll('.perf-bar').forEach(function (bar, i) {
+
+      // 柱子依次生长（stagger 0.2s）
+      var bars = chart.querySelectorAll('.perf-bar');
+      bars.forEach(function (bar, i) {
         setTimeout(function () { bar.classList.add('grown'); }, i * 200);
       });
+
+      // 数字从0滚动到目标值（计数动画）
       chart.querySelectorAll('.perf-value').forEach(function (el, i) {
         var target = parseInt(el.dataset.target, 10);
+        var duration = 1000;
         var start = null;
         setTimeout(function () {
           function step(ts) {
             if (!start) start = ts;
-            var p = Math.min((ts - start) / 1000, 1);
+            var p = Math.min((ts - start) / duration, 1);
             el.textContent = Math.round(target * p);
             if (p < 1) requestAnimationFrame(step);
           }
@@ -1650,6 +1499,7 @@ function webglAvailable() {
       });
     });
   }, { threshold: 0.4 });
+
   observer.observe(chart);
 })();
 </script>
